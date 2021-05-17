@@ -1,0 +1,16 @@
+﻿@using pwa_blazor.Models
+<div>
+    <p>@Data</p>
+    @foreach (NodeInstance element in ChildElements)
+    {
+        <TreeElement Data="element.Data" ChildElements="element.ChildNodes" />
+    }
+</div>
+
+@code 
+{
+    [Parameter]
+    public int Data { get; set; }
+    [Parameter]
+    public List<NodeInstance> ChildElements { get; set; }
+} 

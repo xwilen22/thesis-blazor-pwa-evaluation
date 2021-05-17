@@ -1,0 +1,109 @@
+﻿@page "/"
+@using pwa_blazor.Models
+@using System.Timers;
+
+<h1>Experiment</h1>
+<button @onclick="StartExperiment">Start experiment</button>
+<div id="experiment-root-parent">
+    <p>Param. max amount of elements @PARAMETER_CONTENT_ELEMENT_AMOUNT</p>
+    @if (RootElement != null)
+    {
+        <p>@RootElement.Data</p>
+        @foreach (NodeInstance childElement in RootElement.ChildNodes)
+        {
+            <TreeElement ChildElements="childElement.ChildNodes" Data="childElement.Data" />
+        }
+    }
+</div>
+
+@code
+{
+    //PARAMETERS
+    const int PARAMETER_CONTENT_ELEMENT_AMOUNT = 720; //720, 360, 180
+    const int PARAMETER_MAXIMUM_TREE_DEPTH_AMOUNT = 32;
+    const int PARAMETER_MAXIMUM_CHILD_NODE_AMOUNT = 60; //Max node breath
+    const int PARAMETER_EXPERIMENT_TIME_SECONDS = 30;
+    //------------------------------
+
+    const int INTERVAL_MILLISECONDS = 1000;
+
+    NodeInstance RootElement { get; set; }
+
+    int DistributableElementsAmount { get; set; } = PARAMETER_CONTENT_ELEMENT_AMOUNT;
+    int CurrentTimeLeft { get; set; } = 0;
+
+    private Timer experimentTimer;
+
+    void StartExperiment()
+    {
+        CurrentTimeLeft = PARAMETER_EXPERIMENT_TIME_SECONDS;
+        experimentTimer = new Timer()
+        {
+            Interval = INTERVAL_MILLISECONDS
+        };
+        experimentTimer.Elapsed += OnTimedEvent;
+        experimentTimer.Enabled = true;
+        //Initialization
+        RootElement = AddElement(0, PARAMETER_MAXIMUM_TREE_DEPTH_AMOUNT);
+    }
+    /// <summary>
+    /// Modifies tree data
+    /// </summary>
+    /// <param name="rootNode">Root of tree</param>
+    NodeInstance ScrambleTree(NodeInstance rootNode)
+    {
+        rootNode.AddToData(1);
+
+        for(int i = 0; i < rootNode.ChildNodes.Count; i++)
+        {
+            rootNode.ChildNodes[i] = ScrambleTree(rootNode.ChildNodes[i]);
+        }
+        return rootNode;
+    }
+    /// <summary>
+    /// Recursive function that creates a tree according to set depth
+    /// </summary>
+    /// <param name="Data">Data of root node</param>
+    /// <param name="treeDepth">Depth of tree, how many levels should the child nodes go</param>
+    /// <returns>Root of generated tree</returns>
+    NodeInstance AddElement(int Data, int treeDepth)
+    {
+        NodeInstance element = new NodeInstance(Data);
+        DistributableElementsAmount -= 1;
+        if (treeDepth > 0)
+        {
+            for (int i = 0; i < PARAMETER_MAXIMUM_CHILD_NODE_AMOUNT; i++)
+            {
+                if (DistributableElementsAmount > 0)
+                {
+                    element.ChildNodes.Add(AddElement(Data + 1, treeDepth - 1));
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        return element;
+    }
+    private async void OnTimedEvent(Object source, ElapsedEventArgs e)
+    {
+        this.CurrentTimeLeft -= 1;
+
+        //Changes all data
+        ScrambleTree(RootElement);
+
+        if(CurrentTimeLeft <= 0)
+        {
+            experimentTimer.Enabled = false;
+            //Delete all elements
+            RootElement = null;
+        }
+
+        // Needs to manually notify that the page state has been changed
+        //this.StateHasChanged();
+        // Did some research on this ^. Apparently only works on Blazor Wasm since it only uses one thread.
+        // I changed it to invokeAsync since when Blazor gets mulitthread support the experiment should still work.
+        await this.InvokeAsync(StateHasChanged);
+    }
+}
