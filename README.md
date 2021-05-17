@@ -1,5 +1,5 @@
 # Evaluating Blazor WebAssembly and ReactJS: For the Progressive Web Application Front-end
-Thesis repository for ReactJS and Blazor progressive web applications used in experiment.                                    
+Thesis repository for the ReactJS and Blazor Progressive Web Applications (PWA) used in experiment.                                    
 
 ## The PWAs used in the experiment
 These applications are used in the experiment.
