@@ -203,9 +203,6 @@ def generate_xlsx_from_sample(sampleList, prefixName="gen"):
         sampleWorksheet.write(dataRowIndex, COLUMN_INDEX_DICTIONARY[HEADER_TREE_SIZE_MEMORY], timeHeapPuTuple[1])
         sampleWorksheet.write(dataRowIndex, COLUMN_INDEX_DICTIONARY[HEADER_PU_USAGE], timeHeapPuTuple[2])
 
-    # Jag vill bara i förväg be om ursäkt för det jag kommer skriva 
-    #                                       - William 2021-04-27 17:34
-    
     # STANDARD DEVIATION VALUES FOR EACH SAMPLE COLLECTION
     sampleWorksheet.write(0, COLUMN_INDEX_DICTIONARY[HEADER_GENERATION_TIME_SD], HEADER_GENERATION_TIME_SD, bold)
     sampleWorksheet.write(0, COLUMN_INDEX_DICTIONARY[HEADER_TREE_SIZE_SD], HEADER_TREE_SIZE_SD, bold)
@@ -215,9 +212,6 @@ def generate_xlsx_from_sample(sampleList, prefixName="gen"):
     sampleWorksheet.write(1, COLUMN_INDEX_DICTIONARY[HEADER_GENERATION_TIME_SD], get_standard_deviation(allGenerationTimeList))
     sampleWorksheet.write(1, COLUMN_INDEX_DICTIONARY[HEADER_TREE_SIZE_SD], get_standard_deviation(allHeapUsageList))
     sampleWorksheet.write(1, COLUMN_INDEX_DICTIONARY[HEADER_PU_SD], get_standard_deviation(allPUsageList))
-
-    # Okej, jag var lite överdramatisk
-    #                       - William 2021-04-27 17:41
 
     sampleWorkbook.close()
     os.chdir("..")
