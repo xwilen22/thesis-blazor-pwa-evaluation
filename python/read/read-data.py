@@ -8,17 +8,17 @@ IGNORE_INITIALISER_FUNCTION_NAMES = [
 ]
 # Used to filter out Blazor initialise call and get a comparable sample
 # So it will ignore anything with the duration below this value
-TIMER_FIRE_IGNORE_MAX_MILLISECONDS = 1000
+TIMER_FIRE_IGNORE_MAX_MICROSECONDS = 1000
 
 # Keep this one the same as experiment application
 PARAMETER_EXPERIMENT_TOTAL_TIME_SECONDS = 30
 # To catch the heap allocation events that occurs after JS is done
-PARAMETER_TS_HEAP_EVENT_MARGIN_MILLISECONDS = 10
+PARAMETER_TS_HEAP_EVENT_MARGIN_MICROSECONDS = 10
 # X Phase type, used in trace format to identify complete events.
 COMPLETE_EVENT_TYPE = 'X'
 
 #CSV / XLSX Headers
-HEADER_GENERATION_TIME = "generation_time (ms)"
+HEADER_GENERATION_TIME = "generation_time (μs)"
 HEADER_TREE_SIZE_MEMORY = "tree_size (bytes)"
 # PU = Procent usage
 HEADER_PU_USAGE = "pu_usage (loading precentage of experiment time)"
@@ -57,24 +57,6 @@ def get_standard_deviation(sampleList):
     # Returns standard deviation
     return math.sqrt((n * x - y) / (n*(n - 1)))
 
-def get_t_value(sampleListOne, sampleListTwo):
-    xMean = statistics.mean(sampleListOne)
-    yMean = statistics.mean(sampleListTwo)
-
-    divisionNominator = math.sqrt((get_standard_deviation(sampleListOne)**2 / len(sampleListOne)) + (get_standard_deviation(sampleListTwo)**2 / len(sampleListTwo)))
-
-    return (xMean - yMean) / divisionNominator
-
-def get_degrees_of_freedom(*allSampleListLengths):
-    degreesOfFreedom = 0
-    for length in allSampleListLengths:
-        degreesOfFreedom += length
-    degreesOfFreedom -= len(allSampleListLengths)
-    return degreesOfFreedom
-
-def get_t_critical_value(sampleOne, sampleTwo, significanceLevel = 0.05):
-    return pystats.t.ppf(q=1-significanceLevel/2, df=get_degrees_of_freedom(len(sampleOne), len(sampleTwo)))
-
 def last(n):
     return n[len(n) - 1]
 
@@ -97,7 +79,7 @@ def get_data_tuple_list(file):
             continue
     usedHeapTimelineList.sort(key=last)
 
-    total_generation_time_milliseconds = 0
+    total_generation_time_microseconds = 0
 
     lastAllocatedHeapAmount = usedHeapTimelineList[0][0]
     for functionCall in jsonParsedObject:
@@ -112,8 +94,8 @@ def get_data_tuple_list(file):
             continue
 
         if functionName == FUNCTION_NAME and functionType == COMPLETE_EVENT_TYPE:
-            # Google DevTools, profiles with sampling rate of 1000 samples/seconds = 1 sample/millisecond
-            # GET CALL TIME MS, Get the total amount of seconds since this is the amount of time it takes for the timer function to call its child functions 
+            # Google DevTools, "profiles with sampling rate of 1000 samples/seconds = 1 sample/millisecond"
+            # But timestamps are stored in microseconds due to the value being retrieved from the CPU clock.
             
             # Ignore any TimerFired called by function in ignore list
             ignoreThisFunctionCall = False
@@ -132,13 +114,13 @@ def get_data_tuple_list(file):
                 functionCallDuration = functionCall['tdur']
             
             # Ignores anything smaller than constant. 
-            # This is specifically for Blazor since it invokes TimerFire for a few milliseconds before the real task is done.
-            if functionCallDuration <= TIMER_FIRE_IGNORE_MAX_MILLISECONDS:
+            # This is specifically for Blazor since it invokes TimerFire for a few microseconds before the real task is done.
+            if functionCallDuration <= TIMER_FIRE_IGNORE_MAX_MICROSECONDS:
                 continue
 
-            total_generation_time_milliseconds += functionCallDuration
+            total_generation_time_microseconds += functionCallDuration
 
-            heapUsageAndAllocationTimeList = [heapTuple for heapTuple in usedHeapTimelineList if heapTuple[1] >= functionCall['ts'] and heapTuple[1] <= functionCall['ts'] + functionCallDuration + PARAMETER_TS_HEAP_EVENT_MARGIN_MILLISECONDS]
+            heapUsageAndAllocationTimeList = [heapTuple for heapTuple in usedHeapTimelineList if heapTuple[1] >= functionCall['ts'] and heapTuple[1] <= functionCall['ts'] + functionCallDuration + PARAMETER_TS_HEAP_EVENT_MARGIN_MICROSECONDS]
             
             print("Heapusage and heap time: ", heapUsageAndAllocationTimeList)
             if len(heapUsageAndAllocationTimeList) > 0:
@@ -150,9 +132,9 @@ def get_data_tuple_list(file):
             returningDataList.append (
                 [functionCallDuration, memoryDifference, 0] # Generation time procentage is set after this loop, don't worry 😊
             )
-    print("Sum of all generation times: " ,total_generation_time_milliseconds)
+    print("Sum of all generation times: " ,total_generation_time_microseconds)
     for dataTuple in returningDataList:
-        dataTuple[2] = dataTuple[0] / total_generation_time_milliseconds
+        dataTuple[2] = dataTuple[0] / total_generation_time_microseconds
     return returningDataList
 
 def get_formated_sample_from_files(directoryName):
@@ -233,30 +215,6 @@ if selection.capitalize() == 'Y':
     blazorHeapUsage = get_list_from_tuple_column(blazorSample, 1)
     blazorPuUsage = get_list_from_tuple_column(blazorSample, 2)
     
-    print(F'''      
-    --T-values--
-    
-    Generation time: {get_t_value(reactGenerationTimes, blazorGenerationTimes)}
-    Critical value: {get_t_critical_value(reactGenerationTimes, blazorGenerationTimes)}
-    BLAZOR Generation time variance: {statistics.variance(blazorGenerationTimes)}
-    REACTJS Generation time variance: {statistics.variance(reactGenerationTimes)}
-    Variance difference: {statistics.variance(blazorGenerationTimes) / statistics.variance(reactGenerationTimes)}
-    
-    Tree size: {get_t_value(reactHeapUsage, blazorHeapUsage)}
-    Critical value: {get_t_critical_value(reactHeapUsage, blazorHeapUsage)}
-    BLAZOR Tree size variance: {statistics.variance(blazorHeapUsage)}
-    REACTJS Tree size variance: {statistics.variance(reactHeapUsage)}
-    Variance difference: {statistics.variance(blazorHeapUsage) / statistics.variance(reactHeapUsage)}
-    
-    PU usage: {get_t_value(reactPuUsage, blazorPuUsage)}
-    Critical value: {get_t_critical_value(reactPuUsage, blazorPuUsage)}          
-    BLAZOR Generation %\ of total time: variance: {statistics.variance(blazorPuUsage)}
-    REACTJS Generation %\ of total time: variance: {statistics.variance(reactPuUsage)}
-    Variance difference: {statistics.variance(blazorPuUsage) / statistics.variance(reactPuUsage)}
-            
-    ------------
-    ''')
-
     input("\n\nDone!\n\n>>T-VALUES ABOVE ARE NOT SAVED, COPY BEFORE FINISHING<<\n\n\nPress enter to finish...")
 else:
     quit()
