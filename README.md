@@ -1,5 +1,7 @@
 # Evaluating Blazor WebAssembly and ReactJS For the Progressive Web Application Front-end: A Comparative Study using ReactJS as a Baseline
-Thesis repository for the ReactJS and Blazor Progressive Web Applications (PWA) used in experiment.                                    
+Repository for the ReactJS and Blazor Progressive Web Applications (PWA) used in the experiment portion of the final thesis.                                    
+
+[Link to the paper](http://urn.kb.se/resolve?urn=urn:nbn:se:hj:diva-54289)
 
 ## The PWAs used in the experiment
 These applications are used in the experiment.
